@@ -43,13 +43,24 @@ def open_nwp(zarr_path) -> xr.DataArray:
     Returns:
         Xarray DataArray of the NWP data
     """
-    nwp = xr.open_dataset(
-        zarr_path,
-        engine="zarr",
-        consolidated=True,
-        mode="r",
-        chunks="auto",
-    )
+    if 'netcdf' in str(zarr_path):
+
+        # loading netcdf file, download bytes and then load as xarray
+        import fsspec, io
+        with fsspec.open(zarr_path, mode="rb") as file:
+            file_bytes = file.read()
+
+        with io.BytesIO(file_bytes) as file:
+            nwp = xr.load_dataset(file, engine="h5netcdf")
+
+    else:
+        nwp = xr.open_dataset(
+            zarr_path,
+            engine="zarr",
+            consolidated=True,
+            mode="r",
+            chunks="auto",
+        )
     ukv: xr.DataArray = nwp["UKV"]
     del nwp
     ukv = ukv.transpose("init_time", "step", "variable", "y", "x")
