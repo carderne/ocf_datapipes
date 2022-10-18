@@ -166,7 +166,7 @@ class StartEndDatetimeMixin(Base):
         end_datetime = values["end_datetime"]
 
         # check start datetime is less than end datetime
-        if start_datetime <= end_datetime:
+        if start_datetime > end_datetime:
             message = (
                 f"Start datetime ({start_datetime}) "
                 f"should be less than end datetime ({end_datetime})"
@@ -558,7 +558,7 @@ class InputData(Base):
         enabled_data_sources = [
             data_source_name
             for data_source_name in ALL_DATA_SOURCE_NAMES
-            if values[data_source_name] is not None
+            if ((data_source_name in values.keys()) and (values[data_source_name] is not None))
         ]
 
         for data_source_name in enabled_data_sources:

@@ -69,5 +69,6 @@ class ConvertToNWPTargetTimeIterDataPipe(IterDataPipe):
             coords = {"target_time_utc": target_times}
             init_time_indexer = xr.DataArray(init_times, coords=coords)
             step_indexer = xr.DataArray(steps, coords=coords)
-            xr_data = xr_data.sel(step=step_indexer, init_time_utc=init_time_indexer)
+            xr_data = xr_data.sel(init_time_utc=init_time_indexer)
+            xr_data = xr_data.sel(step=step_indexer)
             yield xr_data
