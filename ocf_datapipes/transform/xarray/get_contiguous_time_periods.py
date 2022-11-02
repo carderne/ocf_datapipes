@@ -41,14 +41,15 @@ class GetContiguousT0TimePeriodsIterDataPipe(IterDataPipe):
         self.sample_period_duration = sample_period_duration
         self.max_t0_offset = max_t0_offset
         self.time_dim = time_dim
+        self.min_seq_length = int(self.total_duration / self.sample_period_duration) + 1
 
     def __iter__(self) -> pd.DataFrame:
         """Calculate contiguous time periods and return a dataframe containing them"""
         for xr_data in self.source_datapipe:
-            logger.debug("Getting contiguous time periods")
+            logger.debug(f"Getting contiguous time periods for {self.min_seq_length=}")
             contiguous_time_periods = get_contiguous_time_periods(
                 datetimes=pd.DatetimeIndex(xr_data[self.time_dim]),
-                min_seq_length=int(self.total_duration / self.sample_period_duration) + 1,
+                min_seq_length=self.min_seq_length,
                 max_gap_duration=self.sample_period_duration,
             )
             logger.debug("Getting contiguous t0 time periods")
@@ -57,6 +58,8 @@ class GetContiguousT0TimePeriodsIterDataPipe(IterDataPipe):
                 history_duration=self.history_duration,
                 forecast_duration=self.forecast_duration,
             )
+            logger.debug(f'Found {len(contiguous_time_periods)} contiguous_time_periods '
+                         f'for {self.history_duration=} and {self.forecast_duration=}')
             yield contiguous_time_periods
 
 
@@ -71,9 +74,11 @@ def get_contiguous_t0_time_periods(
       pd.DataFrame where each row represents a single time period.  The pd.DataFrame
       has two columns: `start_dt` and `end_dt` (where 'dt' is short for 'datetime').
     """
+    logger.debug(contiguous_time_periods)
     contiguous_time_periods["start_dt"] += history_duration
     contiguous_time_periods["end_dt"] -= forecast_duration
     assert (contiguous_time_periods["start_dt"] < contiguous_time_periods["end_dt"]).all()
+    logger.debug(contiguous_time_periods)
     return contiguous_time_periods
 
 
@@ -126,6 +131,7 @@ def get_contiguous_time_periods(
             periods.append(period)
         start_i = next_start_i
 
-    assert len(periods) > 0
+    assert len(periods) > 0, f'Did not find any valid periods for datetimes {datetimes}, ' \
+                                       f'{max_gap_duration=} {min_seq_length=}'
 
     return pd.DataFrame(periods)
